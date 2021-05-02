@@ -2,7 +2,7 @@
         schematypens="http://relaxng.org/ns/structure/1.0"?><?xml-model href="http://docbook.org/xml/5.0/rng/docbook.rng" type="application/xml"
         schematypens="http://purl.oclc.org/dsdl/schematron"?>
 <article version="5.0" xmlns="http://docbook.org/ns/docbook"
-    xmlns:xlink="http://www.w3.org/1999/xlink">
+    xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xi="http://www.w3.org/2001/XInclude">
     <info>
         <title>Security</title>
         <date>2Q19</date>
@@ -732,44 +732,358 @@
                     database administrators, and only <literal>dba</literal> users are allowed to
                     create, remove or modify other users.</para>
             </sect3>
-
-            <sect3 xml:id="ldap-realm">
-                <title>LDAP Realm</title>
-
-                <para>The LDAP Realm is enabled by default in the build configuration file
-                    <literal>extensions/build.properties</literal>
-                    (<literal>include.feature.security.ldap</literal> property). To use the LDAP
-                    realm, add an LDAP realm element to
-                    <literal>/db/system/security/config.xml</literal>. For example:</para>
-                <programlisting language="xml" xlink:href="listings/listing-5.xml"/>
-
+            <sect3 xml:id="ldap-authentication-realm">
+                <title>LDAP Authentication Realm</title>
+                <para>
+                    The LDAP Realm is enabled by default in the build configuration
+                    file <emphasis>extensions/security/pom.xml</emphasis> and include
+                    <literal>&lt;module&gt;ldap&lt;/module&gt;</literal> in the
+                    <literal>&lt;modules/&gt;</literal> element. To enable LDAP
+                    authentication you need to make sure that the file
+                    /db/system/security/config.xml content something similar to that
+                    below
+                </para>
+                <programlisting language="xml">
+&lt;security-manager xmlns=&quot;http://exist-db.org/Configuration&quot; ...
+    ...
+    &lt;realm id=&quot;LDAP&quot;&gt;
+        &lt;context&gt;
+            &lt;url&gt;ldap://directory.mydomain.com:389&lt;/url&gt;
+            &lt;domain&gt;...&lt;/domain&gt;
+            &lt;principalPattern&gt;...&lt;/principalPattern&gt;            
+            &lt;search&gt;
+                &lt;base&gt;ou=department,dc=directory,dc=mydomain,dc=com&lt;/base&gt;
+                &lt;default-username&gt;some-ldap-user&lt;/default-username&gt;
+                &lt;default-password&gt;some-ldap-password&lt;/default-password&gt;
+                &lt;account&gt;
+                    &lt;search-filter-prefix&gt;(&amp;amp;(objectClass=user)(sAMAccountName=${account-name}))&lt;/search-filter-prefix&gt;
+                    &lt;search-attribute&gt;...&lt;/search-attribute&gt;
+                    &lt;metadata-search-attribute&gt;..&lt;/metadata-search-attribute&gt;
+                    &lt;whitelist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/whitelist&gt;
+                    &lt;blacklist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/blacklist&gt;
+                &lt;/account&gt;
+                &lt;group&gt;
+                    &lt;search-filter-prefix&gt;(&amp;amp;(objectClass=group)(sAMAccountName=${group-name}))&lt;/group-search-filter&gt;
+                    &lt;search-attribute&gt;...&lt;/search-attribute&gt;
+                    &lt;metadata-search-attribute&gt;..&lt;/metadata-search-attribute&gt;
+                    &lt;whitelist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/whitelist&gt;
+                    &lt;blacklist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/blacklist&gt;
+                &lt;/group&gt;
+            &lt;/search&gt;
+            &lt;transformation&gt;&lt;add-group&gt;...&lt;/add-group&gt;&lt;/transformation&gt;
+        &lt;/context&gt;
+    &lt;/realm&gt;
+    ...
+&lt;/security-manager&gt;
+</programlisting>
                 <itemizedlist>
                     <listitem>
-                        <para>The <tag>default-username</tag> and <tag>default-password</tag>
-                            elements are used to communicate with the LDAP server if a non-LDAP user
-                            requests information from LDAP server.</para>
+                        <para>
+                            url - the URL to your LDAP directory server.
+                        </para>
                     </listitem>
                     <listitem>
-                        <para>The <tag>search-*</tag> elements are mapping for names.</para>
+                        <para>
+                            base - the LDAP base to use when resolving users and groups
+                        </para>
                     </listitem>
                     <listitem>
-                        <para>The <tag>metadata-search-attribute</tag> elements are used for mapping
-                            LDAP account metadata onto eXist-db account metadata.</para>
+                        <para>
+                            The <literal>default-username</literal> and
+                            <literal>default-password</literal> elements are used to
+                            communicate with the LDAP server if a non-LDAP user requests
+                            information from LDAP server.
+                        </para>
                     </listitem>
                     <listitem>
-                        <para>The <tag>whitelist</tag> element contains the allowed groups for
-                            authentication. The <tag>blacklist</tag> element contains groups that
-                            are not allowed.</para>
+                        <para>
+                            The <literal>search-*</literal> elements are mapping for
+                            names.
+                        </para>
                     </listitem>
                     <listitem>
-                        <para>The <tag>transformation</tag> element contains actions to be performed
-                            after first authentication.</para>
+                        <para>
+                            The <literal>metadata-search-attribute</literal> elements are
+                            used for mapping LDAP account metadata onto eXist-db account
+                            metadata.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            The <literal>whitelist</literal> element contains the allowed
+                            groups for authentication. The <literal>blacklist</literal>
+                            element contains groups that are not allowed.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            The <literal>transformation</literal> element contains actions
+                            to be performed after first authentication.
+                        </para>
                     </listitem>
                 </itemizedlist>
-            </sect3>          
-
+                <para>
+                    Here is an example:
+                </para>
+                <programlisting language="xml">
+&lt;realm id=&quot;LDAP&quot; version=&quot;1.0&quot; principals-are-case-insensitive=&quot;true&quot;&gt;
+    &lt;context&gt;
+        &lt;authentication&gt;simple&lt;/authentication&gt;
+        &lt;url&gt;ldap://ad.server.url.here:389&lt;/url&gt;
+        &lt;domain&gt;domain.here&lt;/domain&gt;
+        &lt;search&gt;
+            &lt;base&gt;ou=group,dc=ad,dc=organiation-or-what-ever,dc=domain&lt;/base&gt;
+            &lt;default-username&gt;account@domain.here&lt;/default-username&gt;
+            &lt;default-password&gt;XXXXXXX&lt;/default-password&gt;
+            &lt;account&gt;
+                &lt;search-filter-prefix&gt;objectClass=user&lt;/search-filter-prefix&gt;
+                &lt;search-attribute key=&quot;objectSid&quot;&gt;objectSid&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;primaryGroupID&quot;&gt;primaryGroupID&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;name&quot;&gt;sAMAccountName&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;dn&quot;&gt;distinguishedName&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;memberOf&quot;&gt;memberOf&lt;/search-attribute&gt;
+                &lt;metadata-search-attribute key=&quot;http://axschema.org/namePerson/first&quot;
+                    &gt;givenName&lt;/metadata-search-attribute&gt;
+                &lt;metadata-search-attribute key=&quot;http://axschema.org/contact/email&quot;
+                    &gt;mail&lt;/metadata-search-attribute&gt;
+                &lt;metadata-search-attribute key=&quot;http://axschema.org/namePerson/last&quot;
+                    &gt;sn&lt;/metadata-search-attribute&gt;
+                &lt;metadata-search-attribute key=&quot;http://axschema.org/namePerson&quot;
+                    &gt;name&lt;/metadata-search-attribute&gt;
+            &lt;/account&gt;
+            &lt;group&gt;
+                &lt;search-filter-prefix&gt;objectClass=group&lt;/search-filter-prefix&gt;
+                &lt;search-attribute key=&quot;member&quot;&gt;member&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;primaryGroupToken&quot;&gt;primaryGroupToken&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;objectSid&quot;&gt;objectSid&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;name&quot;&gt;sAMAccountName&lt;/search-attribute&gt;
+                &lt;search-attribute key=&quot;dn&quot;&gt;distinguishedName&lt;/search-attribute&gt;
+                &lt;whitelist&gt;
+                    &lt;principal&gt;Domain Users&lt;/principal&gt;
+                    &lt;principal&gt;Users_GROUP&lt;/principal&gt;
+                &lt;/whitelist&gt;
+            &lt;/group&gt;
+        &lt;/search&gt;
+        &lt;transformation&gt;
+            &lt;add-group&gt;group.users&lt;/add-group&gt;
+        &lt;/transformation&gt;
+    &lt;/context&gt;
+&lt;/realm&gt;
+</programlisting>
+                <para>
+                    Here is a sample LDAP account entry in
+                    <literal>/db/system/security/LDAP/accounts/u113896@example.com.xml</literal>:
+                </para>
+                <programlisting language="xml">
+&lt;account xmlns=&quot;http://exist-db.org/Configuration&quot; id=&quot;14&quot;&gt;
+    &lt;!--&lt;password&gt;&lt;/password&gt;--&gt;
+    &lt;!--&lt;digestPassword&gt;&lt;/digestPassword&gt;--&gt;
+    &lt;group name=&quot;domain users@example.com&quot;/&gt;
+    &lt;group name=&quot;mm-user&quot;/&gt;
+    &lt;group name=&quot;mm-modeler&quot;/&gt;
+    &lt;group name=&quot;dba&quot;/&gt;
+    &lt;group name=&quot;mm-reconcile&quot;/&gt;
+    &lt;expired&gt;false&lt;/expired&gt;
+    &lt;enabled&gt;true&lt;/enabled&gt;
+    &lt;umask&gt;022&lt;/umask&gt;
+    &lt;metadata key=&quot;http://axschema.org/namePerson/last&quot;&gt;Cahlander&lt;/metadata&gt;
+    &lt;metadata key=&quot;http://axschema.org/namePerson/first&quot;&gt;Loren&lt;/metadata&gt;
+    &lt;metadata key=&quot;http://axschema.org/namePerson&quot;&gt;Loren Cahlander&lt;/metadata&gt;
+    &lt;metadata key=&quot;http://axschema.org/contact/email&quot;&gt;Loren.Cahlander@example.com&lt;/metadata&gt;
+    &lt;name&gt;u113896@example.com&lt;/name&gt;
+&lt;/account&gt;
+</programlisting>
+                <para>
+                    Here is a sample LDAP group entry in
+                    <literal>/db/system/security/LDAP/groups/domain user@example.com.xml</literal>:
+                </para>
+                <programlisting language="xml">
+&lt;group xmlns=&quot;http://exist-db.org/Configuration&quot; id=&quot;16&quot;&gt;
+    &lt;name&gt;domain users@example.com&lt;/name&gt;
+&lt;/group&gt;
+</programlisting>
+            </sect3>
+            <sect3 xml:id="activedirectory-authentication-realm">
+                <title>ActiveDirectory Authentication Realm</title>
+                <para> The Active Directory Realm is enabled by default in the build configuration file
+                    <literal>extensions/security/pom.xml</literal> and include
+                    <literal>&lt;module&gt;activedirectory&lt;/module&gt;</literal> in the
+                    <literal>&lt;modules/&gt;</literal> element. </para>
+            </sect3>
+            <sect3 xml:id="ip-range-authentication-realm">
+                <title>IP Range Authentication Realm</title>
+                <para>
+                    The IPRange Realm is enabled by default in the build configuration
+                    file <emphasis>extensions/security/pom.xml</emphasis> and include
+                    <literal>&lt;module&gt;iprange&lt;/module&gt;</literal> in the
+                    <literal>&lt;modules/&gt;</literal> element. To enable IPRange
+                    authentication you need to make sure that the file
+                    /db/system/security/config.xml content something similar to that
+                    below
+                </para>
+                <programlisting language="xml">
+&lt;security-manager xmlns=&quot;http://exist-db.org/Configuration&quot; ...
+    ...
+    &lt;realm id=&quot;IPRange&quot;&gt;
+    &lt;/realm&gt;
+    ...
+&lt;/security-manager&gt;
+</programlisting>
+                <para>
+                    For the authentication of a user based on the IP address that the
+                    user is from, add accounts into
+                    <literal>/db/system/security/iprange/accounts</literal> in the
+                    format:
+                </para>
+                <programlisting language="xml">
+&lt;account xmlns=&quot;http://exist-db.org/Configuration&quot; id=&quot;22&quot;&gt;
+    &lt;group name=&quot;emh&quot;/&gt;
+    &lt;expired&gt;false&lt;/expired&gt;
+    &lt;enabled&gt;true&lt;/enabled&gt;
+    &lt;umask&gt;022&lt;/umask&gt;
+    &lt;name&gt;emh&lt;/name&gt;
+    &lt;iprange&gt;
+        &lt;start&gt;&lt;/start&gt;
+        &lt;end&gt;&lt;/end&gt;
+    &lt;/iprange&gt;
+&lt;/account&gt;
+</programlisting>
+                <para>
+                    Where start and end have the IP range of where this user is coming
+                    from.
+                </para>
+            </sect3>
+            <sect3 xml:id="json-web-token-jwt-authentication-realm">
+                <title>JSON Web Token (JWT) Authentication Realm</title>
+                <para>
+                    The JWT Realm is enabled by default in the build configuration
+                    file <literal>extensions/security/pom.xml</literal> and include
+                    <literal>&lt;module&gt;jwt&lt;/module&gt;</literal> in the
+                    <literal>&lt;modules/&gt;</literal> element. To enable JWT
+                    authentication you need to make sure that the file
+                    /db/system/security/config.xml content something similar to that
+                    below
+                </para>
+                <programlisting language="xml">
+&lt;security-manager xmlns=&quot;http://exist-db.org/Configuration&quot; ...
+    ...
+    &lt;realm id=&quot;JWT&quot;&gt;
+        &lt;context&gt;
+            &lt;domain&gt;...&lt;/domain&gt;
+            &lt;secret&gt;...&lt;/secret&gt;
+            &lt;account&gt;
+                &lt;property&gt;...&lt;/property&gt;
+                &lt;metadata-property&gt;..&lt;/metadata-property&gt;
+                &lt;whitelist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/whitelist&gt;
+                &lt;blacklist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/blacklist&gt;
+            &lt;/account&gt;
+            &lt;group&gt;
+                &lt;claim&gt;...&lt;/claim&gt;
+                &lt;property&gt;...&lt;/property&gt;
+                &lt;metadata-property&gt;..&lt;/metadata-property&gt;
+                &lt;dba&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/dba&gt;
+                &lt;whitelist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/whitelist&gt;
+                &lt;blacklist&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;principal&gt;..&lt;/principal&gt;&lt;/blacklist&gt;
+            &lt;/group&gt;
+        &lt;/context&gt;
+    &lt;/realm&gt;
+    ...
+&lt;/security-manager&gt;
+</programlisting>
+                <para>
+                    For the following JWT
+                </para>
+                <programlisting language="json">
+{
+    &quot;sub&quot;: &quot;00uixa271s6x7qt8I0h7&quot;,
+    &quot;ver&quot;: 1,
+    &quot;iss&quot;: &quot;https://${yourOktaDomain}&quot;,
+    &quot;aud&quot;: &quot;0oaoiuhhch8VRtBnC0h7&quot;,
+    &quot;iat&quot;: 1574201516,
+    &quot;exp&quot;: 1574205116,
+    &quot;jti&quot;: &quot;ID.ewMNfSvcpuqyS93OgVeCN3F2LseqROkyYjz7DNb9yhs&quot;,
+    &quot;amr&quot;: [
+        &quot;pwd&quot;,
+        &quot;mfa&quot;,
+        &quot;kba&quot;
+    ],
+    &quot;idp&quot;: &quot;00oixa26ycdNcX0VT0h7&quot;,
+    &quot;nonce&quot;: &quot;UBGW&quot;,
+    &quot;auth_time&quot;: 1574201433,
+    &quot;groups&quot;: [
+        &quot;Everyone&quot;,
+        &quot;IT&quot;
+    ]
+}
+</programlisting>
+                <para>
+                    Here is the realm description
+                </para>
+                <programlisting language="xml">
+&lt;realm id=&quot;JWT&quot; version=&quot;1.0&quot; principals-are-case-insensitive=&quot;true&quot;&gt;
+    &lt;context&gt;
+        &lt;domain&gt;domain.here&lt;/domain&gt;
+        &lt;secret&gt;...&lt;/secret&gt;
+        &lt;account&gt;
+            &lt;property key=&quot;name&quot;&gt;idp&lt;/property&gt;
+        &lt;/account&gt;
+        &lt;group&gt;
+            &lt;claim&gt;groups&lt;/claim&gt;
+        &lt;/group&gt;
+    &lt;/context&gt;
+&lt;/realm&gt;
+</programlisting>
+                <para>
+                    If the <literal>groups</literal> entry contained JSON objects like
+                    the folllowing:
+                </para>
+                <programlisting language="json">
+{
+    &quot;sub&quot;: &quot;00uixa271s6x7qt8I0h7&quot;,
+    &quot;ver&quot;: 1,
+    &quot;iss&quot;: &quot;https://${yourOktaDomain}&quot;,
+    &quot;aud&quot;: &quot;0oaoiuhhch8VRtBnC0h7&quot;,
+    &quot;iat&quot;: 1574201516,
+    &quot;exp&quot;: 1574205116,
+    &quot;jti&quot;: &quot;ID.ewMNfSvcpuqyS93OgVeCN3F2LseqROkyYjz7DNb9yhs&quot;,
+    &quot;amr&quot;: [
+        &quot;pwd&quot;,
+        &quot;mfa&quot;,
+        &quot;kba&quot;
+    ],
+    &quot;idp&quot;: &quot;00oixa26ycdNcX0VT0h7&quot;,
+    &quot;nonce&quot;: &quot;UBGW&quot;,
+    &quot;auth_time&quot;: 1574201433,
+    &quot;groups&quot;: [
+        {
+          &quot;name&quot; : &quot;Everyone&quot;
+        },
+        {
+          &quot;name&quot; : &quot;IT&quot;
+        }
+    ]
+}
+</programlisting>
+                <para>
+                    Then the realm description would be:
+                </para>
+                <programlisting language="xml">
+&lt;realm id=&quot;JWT&quot; version=&quot;1.0&quot; principals-are-case-insensitive=&quot;true&quot;&gt;
+    &lt;context&gt;
+        &lt;domain&gt;domain.here&lt;/domain&gt;
+        &lt;secret&gt;...&lt;/secret&gt;
+        &lt;account&gt;
+            &lt;property key=&quot;name&quot;&gt;idp&lt;/property&gt;
+        &lt;/account&gt;
+        &lt;group&gt;
+            &lt;claim&gt;groups&lt;/claim&gt;
+            &lt;property key=&quot;name&quot;&gt;name&lt;/property&gt;
+        &lt;/group&gt;
+    &lt;/context&gt;
+&lt;/realm&gt;
+</programlisting>
+            </sect3>
         </sect2>
-
     </sect1>
 
     <!-- ================================================================== -->
